@@ -57,7 +57,8 @@ namespace ToDo.UI
                     services.AddDbContext<ToDoDbContext>();
 
                     // Реєструємо Репозиторії
-                    services.AddTransient<IRepository<Task>, GenericRepository<Task>>();
+                    // Тепер Tasks йдуть через Інтернет (API)
+                    services.AddTransient<IRepository<Task>, ToDo.UI.ApiRepositories.ApiTaskRepository>();
                     services.AddTransient<IRepository<Project>, GenericRepository<Project>>();
                     services.AddTransient<IRepository<User>, GenericRepository<User>>();
                     
