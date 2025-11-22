@@ -1,6 +1,12 @@
-﻿namespace ToDo.Models;
+﻿using System.Collections.Generic;
 
-public class Tag
+namespace ToDo.Models
 {
-    
+    public class Tag
+    {
+        public int TagId { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        public virtual ICollection<Task> Tasks { get; set; } = new List<Task>();
+    }
 }

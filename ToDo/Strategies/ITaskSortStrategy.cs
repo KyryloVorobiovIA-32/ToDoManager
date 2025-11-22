@@ -1,6 +1,12 @@
-﻿namespace ToDo.Strategies;
+﻿using System.Collections.Generic;
+using ToDo.Models;
+using Task = ToDo.Models.Task;
 
-public interface ITaskSortStrategy
+namespace ToDo.Strategies
 {
-    
+    // Це наш інтерфейс "Strategy"
+    public interface ITaskSortStrategy
+    {
+        IEnumerable<Task> Sort(IEnumerable<Task> tasks);
+    }
 }

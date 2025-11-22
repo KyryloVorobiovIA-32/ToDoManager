@@ -1,6 +1,8 @@
 ﻿namespace ToDo.Enums;
 
-public class PriorityEnum
+public enum PriorityEnum
 {
-    
+    Low,
+    Medium,
+    High
 }
