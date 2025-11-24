@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using ToDo.Models;
@@ -9,6 +10,7 @@ using ToDo.Strategies;
 using ToDo.Services;
 using ToDo.Commands;
 using ToDo.Exporters;
+using ToDo.UI.Services; // Додано для AuthService
 using Task = ToDo.Models.Task; 
 
 namespace ToDo.UI
@@ -20,7 +22,10 @@ namespace ToDo.UI
         private readonly IRepository<User> _userRepository;
         private readonly IEnumerable<ITaskSortStrategy> _sortStrategies;
         
-        // Експортери (ЛР 7)
+        // Сервіс Авторизації (Курсова)
+        private readonly AuthService _authService;
+
+        // Експортери
         private readonly CsvTaskExporter _csvExporter;
         private readonly HtmlTaskExporter _htmlExporter;
         
@@ -30,7 +35,8 @@ namespace ToDo.UI
             IRepository<User> userRepository,
             IEnumerable<ITaskSortStrategy> sortStrategies,
             CsvTaskExporter csvExporter,
-            HtmlTaskExporter htmlExporter)
+            HtmlTaskExporter htmlExporter,
+            AuthService authService) // Отримуємо AuthService через DI
         {
             InitializeComponent();
             
@@ -38,14 +44,20 @@ namespace ToDo.UI
             _projectRepository = projectRepository;
             _userRepository = userRepository;
             _sortStrategies = sortStrategies;
-            
             _csvExporter = csvExporter;
             _htmlExporter = htmlExporter;
+            _authService = authService; // Зберігаємо сервіс авторизації
 
             _taskService.TasksChanged += OnTasksChangedHandler;
 
             InitializeSortComboBox();
             LoadTasks();
+            
+            // Відображаємо ім'я користувача у заголовку (приємна дрібниця)
+            if (_authService.CurrentUser != null)
+            {
+                this.Text = $"Менеджер Завдань (ToDo) - Користувач: {_authService.CurrentUser.Username}";
+            }
         }
         
         private void OnTasksChangedHandler()
@@ -68,6 +80,7 @@ namespace ToDo.UI
             }
             cmbSortStrategy.SelectedIndex = 0;
             cmbSortStrategy.SelectedIndexChanged += (sender, e) => LoadTasks();
+            cmbSortStrategy.SelectedIndexChanged += (sender, e) => tasksListBox.Invalidate(); 
         }
         
         private void LoadTasks()
@@ -77,36 +90,74 @@ namespace ToDo.UI
             if (cmbSortStrategy.SelectedItem is not ITaskSortStrategy selectedStrategy)
                 return;
 
+            // Можна додати фільтрацію завдань тільки для поточного користувача,
+            // якщо _taskService повертає всі. Але поки залишимо як є.
             var tasks = _taskService.GetAllTasks();
             var sortedTasks = selectedStrategy.Sort(tasks);
             
             foreach (var task in sortedTasks)
             {
-                tasksListBox.Items.Add($"[{task.Status}] {task.Title} (Пріоритет: {task.Priority})");
+                tasksListBox.Items.Add($"[{task.Status}] {task.Title} (Пріоритет: {task.Priority}, Балів: {task.EstimatedPoints})");
             }
+        }
+        
+        private void tasksListBox_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+
+            string text = tasksListBox.Items[e.Index].ToString()!;
+            
+            if (cmbSortStrategy.SelectedItem is not ITaskSortStrategy selectedStrategy) return;
+            
+            var tasks = _taskService.GetAllTasks();
+            var sortedTasks = selectedStrategy.Sort(tasks).ToList();
+
+            if (e.Index >= sortedTasks.Count) return;
+            
+            var task = sortedTasks[e.Index];
+            
+            Color itemColor = Color.Black;
+            try {
+                itemColor = ColorTranslator.FromHtml(task.State.ColorHex);
+            } catch { }
+
+            e.DrawBackground();
+
+            bool isSelected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+            using (Brush brush = isSelected ? new SolidBrush(Color.White) : new SolidBrush(itemColor))
+            {
+                e.Graphics.DrawString(text, e.Font!, brush, e.Bounds);
+            }
+            
+            e.DrawFocusRectangle();
         }
         
         private void btnAddTask_Click(object sender, EventArgs e)
         {
-            var defaultUser = _userRepository.GetAll().FirstOrDefault();
-            if (defaultUser == null)
+            // *** ВИКОРИСТАННЯ AUTH SERVICE ***
+            var currentUser = _authService.CurrentUser;
+            
+            if (currentUser == null)
             {
-                MessageBox.Show("Критична помилка: Не знайдено користувача.", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Помилка авторизації. Перезапустіть програму.", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            var defaultProject = _projectRepository.GetAll().FirstOrDefault(p => p.UserId == defaultUser.UserId);
-            if (defaultProject == null)
+
+            // Ми використовуємо ім'я змінної userProject
+            var userProject = _projectRepository.GetAll().FirstOrDefault(p => p.UserId == currentUser.UserId);
+            
+            if (userProject == null)
             {
-                defaultProject = new Project 
+                userProject = new Project 
                 { 
-                    Title = "Загальний Проєкт", 
-                    UserId = defaultUser.UserId,
+                    Title = $"Проєкт користувача {currentUser.Username}", 
+                    UserId = currentUser.UserId,
                     CreationDate = DateTime.Now
                 }; 
-                _projectRepository.Add(defaultProject);
+                _projectRepository.Add(userProject);
             }
 
-            using (var addTaskForm = new AddTaskForm(defaultProject.ProjectId))
+            using (var addTaskForm = new AddTaskForm(userProject.ProjectId))
             {
                 if (addTaskForm.ShowDialog() == DialogResult.OK)
                 {
@@ -117,11 +168,14 @@ namespace ToDo.UI
                             Title = addTaskForm.TaskTitle!, 
                             Description = string.Empty,
                             Priority = addTaskForm.TaskPriority,
-                            ProjectId = defaultProject.ProjectId,
+                            
+                            // *** ВИПРАВЛЕННЯ ТУТ ***
+                            // Було: defaultProject.ProjectId (помилка, бо такої змінної вже немає)
+                            // Стало: userProject.ProjectId (правильно)
+                            ProjectId = userProject.ProjectId, 
+                            
                             Status = StatusEnum.New,
                             DueDate = DateTime.Now.AddDays(1),
-                            
-                            // ЛР 8: Зберігаємо оцінку (бали) з форми
                             EstimatedPoints = addTaskForm.TaskEstimatedPoints
                         };
                         
@@ -138,7 +192,6 @@ namespace ToDo.UI
             }
         }
 
-        // Обробник кнопки "Експорт" (ЛР 7)
         private void btnExport_Click(object sender, EventArgs e)
         {
             using (var saveFileDialog = new SaveFileDialog())
@@ -154,16 +207,9 @@ namespace ToDo.UI
                         var tasks = _taskService.GetAllTasks();
                         string filePath = saveFileDialog.FileName;
 
-                        TaskExporter exporter;
-                        
-                        if (filePath.EndsWith(".csv"))
-                        {
-                            exporter = _csvExporter;
-                        }
-                        else
-                        {
-                            exporter = _htmlExporter;
-                        }
+                        TaskExporter exporter = filePath.EndsWith(".csv") 
+                            ? (TaskExporter)_csvExporter 
+                            : (TaskExporter)_htmlExporter;
 
                         exporter.Export(filePath, tasks);
 
@@ -177,26 +223,17 @@ namespace ToDo.UI
             }
         }
 
-        // ЛР 8: Метод підрахунку балів (Composite Pattern)
         private void btnCalcStats_Click(object sender, EventArgs e)
         {
-            // Отримуємо поточного користувача
-            var defaultUser = _userRepository.GetAll().FirstOrDefault();
-            if (defaultUser == null) 
-            {
-                MessageBox.Show("Користувач не знайдений.", "Помилка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+            // *** ВИКОРИСТАННЯ AUTH SERVICE ***
+            var currentUser = _authService.CurrentUser;
+            if (currentUser == null) return;
             
-            var project = _projectRepository.GetAll().FirstOrDefault(p => p.UserId == defaultUser.UserId);
+            var project = _projectRepository.GetAll().FirstOrDefault(p => p.UserId == currentUser.UserId);
             
             if (project != null)
             {
-                // ТУТ ПРАЦЮЄ COMPOSITE:
-                // Ми викликаємо метод у Проєкту, а він сам опитує свої Завдання
                 double totalPoints = project.GetEstimatedPoints();
-                
-                // Оновлюємо лейбл та показуємо повідомлення
                 lblStats.Text = $"Загальна оцінка: {totalPoints}";
                 MessageBox.Show($"Загальна складність проєкту \"{project.Title}\": {totalPoints} балів", 
                                 "Статистика Проєкту", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -205,6 +242,45 @@ namespace ToDo.UI
             {
                 MessageBox.Show("Проєкт не знайдено.", "Інформація", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+        }
+
+        private Task? GetSelectedTask()
+        {
+            if (tasksListBox.SelectedIndex == -1) return null;
+            if (cmbSortStrategy.SelectedItem is not ITaskSortStrategy selectedStrategy) return null;
+
+            var tasks = _taskService.GetAllTasks();
+            var sortedTasks = selectedStrategy.Sort(tasks).ToList();
+            
+            if (tasksListBox.SelectedIndex < sortedTasks.Count)
+            {
+                return sortedTasks[tasksListBox.SelectedIndex];
+            }
+            return null;
+        }
+
+        private void btnStart_Click(object sender, EventArgs e)
+        {
+            var task = GetSelectedTask();
+            if (task == null) 
+            {
+                MessageBox.Show("Виберіть завдання зі списку!", "Увага", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            task.State.Process();
+            _taskService.UpdateTask(task);
+        }
+
+        private void btnComplete_Click(object sender, EventArgs e)
+        {
+            var task = GetSelectedTask();
+            if (task == null) 
+            {
+                MessageBox.Show("Виберіть завдання зі списку!", "Увага", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            task.State.Complete();
+            _taskService.UpdateTask(task);
         }
     }
 }

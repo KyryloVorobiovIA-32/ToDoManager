@@ -11,8 +11,8 @@ using ToDo.Data;
 namespace ToDo.Migrations
 {
     [DbContext(typeof(ToDoDbContext))]
-    [Migration("20251114231245_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251123200648_InitialSqlite")]
+    partial class InitialSqlite
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -85,6 +85,9 @@ namespace ToDo.Migrations
 
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("TEXT");
+
+                    b.Property<double>("EstimatedPoints")
+                        .HasColumnType("REAL");
 
                     b.Property<int>("Priority")
                         .HasColumnType("INTEGER");

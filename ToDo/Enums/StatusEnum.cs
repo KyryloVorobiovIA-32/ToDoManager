@@ -1,8 +1,9 @@
-﻿namespace ToDo.Enums;
-
-public enum StatusEnum
+﻿namespace ToDo.Enums
 {
-    New,
-    InProgress,
-    Done
+    public enum StatusEnum
+    {
+        New,
+        InProgress,
+        Done
+    }
 }

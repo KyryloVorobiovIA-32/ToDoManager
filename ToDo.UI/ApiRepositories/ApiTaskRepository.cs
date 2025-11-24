@@ -49,6 +49,13 @@ namespace ToDo.UI.ApiRepositories
         {
             var response = _httpClient.PostAsJsonAsync(_baseUrl, entity).Result;
             response.EnsureSuccessStatusCode();
+
+            // *** ВИПРАВЛЕННЯ: Оновлюємо ID завдання ***
+            var createdEntity = response.Content.ReadFromJsonAsync<Task>().Result;
+            if (createdEntity != null)
+            {
+                entity.TaskId = createdEntity.TaskId;
+            }
         }
 
         public void Update(Task entity)

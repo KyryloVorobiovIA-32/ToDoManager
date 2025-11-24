@@ -5,12 +5,17 @@ using ToDo.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Реєстрація сервісів
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Ігноруємо цикли (User -> Project -> User...) при перетворенні в JSON
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Підключення БД
-builder.Services.AddDbContext<ToDoDbContext>();
+builder.Services.AddDbContext<ToDoDbContext>(options => options.UseSqlite("Data Source=todo.db", 
+        b => b.MigrationsAssembly("ToDo"))); // <--- ВАЖНО: Указываем, где лежат миграции
 
 var app = builder.Build();
 

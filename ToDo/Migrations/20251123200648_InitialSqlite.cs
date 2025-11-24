@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ToDo.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialSqlite : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -67,6 +67,7 @@ namespace ToDo.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     Title = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: false),
+                    EstimatedPoints = table.Column<double>(type: "REAL", nullable: false),
                     DueDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Priority = table.Column<int>(type: "INTEGER", nullable: false),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),

@@ -10,6 +10,7 @@ using ToDo.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using ToDo.Exporters;
+using ToDo.UI.Services;
 using Task = ToDo.Models.Task;
 
 namespace ToDo.UI
@@ -28,39 +29,38 @@ namespace ToDo.UI
             var host = CreateHostBuilder().Build();
             Services = host.Services;
 
-            // Виконуємо міграцію та сидінг даних
-            using (var scope = Services.CreateScope())
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<ToDoDbContext>();
-                try
-                {
-                    dbContext.Database.Migrate();
-                    EnsureDataExists(dbContext);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Критична помилка ініціалізації бази даних: {ex.Message}",
-                                    "Помилка БД", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-            }
+            // *** ВАЖНОЕ ИЗМЕНЕНИЕ ***
+            // Мы УДАЛИЛИ блок "using (var scope... dbContext.Database.Migrate())"
+            // Клиент (UI) больше НЕ пытается создавать базу данных. 
+            // Это делает только Сервер (API).
 
-            Application.Run(Services.GetRequiredService<MainForm>());
+            // 1. Отримуємо форму логіна (через DI)
+            var loginForm = Services.GetRequiredService<LoginForm>();
+            
+            // 2. Показуємо форму логіна
+            if (loginForm.ShowDialog() == DialogResult.OK)
+            {
+                // 3. Якщо користувач успішно увійшов, запускаємо головну форму
+                Application.Run(Services.GetRequiredService<MainForm>());
+            }
+            else
+            {
+                Application.Exit();
+            }
         }
 
-        // Налаштування "Хоста" та всіх наших сервісів
         static IHostBuilder CreateHostBuilder() =>
             Host.CreateDefaultBuilder()
                 .ConfigureServices((context, services) =>
                 {
-                    // Реєструємо DbContext
-                    services.AddDbContext<ToDoDbContext>();
+                    // Налаштовуємо підключення до тієї ж БД для локальних операцій (User/Project)
+                    services.AddDbContext<ToDoDbContext>(options => 
+                        options.UseSqlite("Data Source=todo.db"));
 
-                    // Реєструємо Репозиторії
-                    // Тепер Tasks йдуть через Інтернет (API)
+                    // Реєструємо Репозиторії (ВСЕ через API!)
                     services.AddTransient<IRepository<Task>, ToDo.UI.ApiRepositories.ApiTaskRepository>();
-                    services.AddTransient<IRepository<Project>, GenericRepository<Project>>();
-                    services.AddTransient<IRepository<User>, GenericRepository<User>>();
+                    services.AddTransient<IRepository<Project>, ToDo.UI.ApiRepositories.ApiProjectRepository>(); // Новый
+                    services.AddTransient<IRepository<User>, ToDo.UI.ApiRepositories.ApiUserRepository>();       // Новый
                     
                     // Реєструємо Стратегії
                     services.AddTransient<ITaskSortStrategy, SortByPriorityStrategy>();
@@ -68,6 +68,7 @@ namespace ToDo.UI
 
                     // Реєстрація Service
                     services.AddSingleton<TaskService>(); 
+                    services.AddSingleton<AuthService>(); 
                     
                     // Реєстрація Експортерів
                     services.AddTransient<CsvTaskExporter>();
@@ -75,31 +76,7 @@ namespace ToDo.UI
                     
                     // Реєструємо Форми
                     services.AddTransient<MainForm>();
+                    services.AddTransient<LoginForm>();
                 });
-        
-        private static void EnsureDataExists(ToDoDbContext context)
-        {
-            if (!context.Users.Any())
-            {
-                context.Users.Add(new User
-                {
-                    Username = "default_user",
-                    PasswordHash = "hashedpassword"
-                });
-                context.SaveChanges(); 
-            }
-
-            var defaultUser = context.Users.First();
-            if (!context.Projects.Any())
-            {
-                context.Projects.Add(new Project
-                {
-                    Title = "Загальний Проєкт",
-                    CreationDate = DateTime.Now,
-                    UserId = defaultUser.UserId
-                });
-                context.SaveChanges();
-            }
-        }
     }
 }

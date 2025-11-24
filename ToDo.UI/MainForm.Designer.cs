@@ -7,10 +7,10 @@ partial class MainForm
     private System.Windows.Forms.ComboBox cmbSortStrategy;
     private System.Windows.Forms.Label lblSort;
     private System.Windows.Forms.Button btnExport;
-    // НОВІ ЕЛЕМЕНТИ ДЛЯ ЛР 8
     private System.Windows.Forms.Button btnCalcStats;
     private System.Windows.Forms.Label lblStats;
-    // -------------------------------
+    private System.Windows.Forms.Button btnStart;
+    private System.Windows.Forms.Button btnComplete;
     
     private System.ComponentModel.IContainer components = null;
 
@@ -34,6 +34,8 @@ partial class MainForm
         this.btnExport = new System.Windows.Forms.Button();
         this.btnCalcStats = new System.Windows.Forms.Button();
         this.lblStats = new System.Windows.Forms.Label();
+        this.btnStart = new System.Windows.Forms.Button();
+        this.btnComplete = new System.Windows.Forms.Button();
         this.SuspendLayout();
         
         // lblSort
@@ -50,32 +52,58 @@ partial class MainForm
         this.cmbSortStrategy.Name = "cmbSortStrategy";
         this.cmbSortStrategy.Size = new System.Drawing.Size(294, 23);
         this.cmbSortStrategy.TabIndex = 0;
+        this.cmbSortStrategy.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right);
         
         // tasksListBox
+        this.tasksListBox.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed; 
         this.tasksListBox.Location = new System.Drawing.Point(12, 38);
         this.tasksListBox.Name = "tasksListBox";
-        this.tasksListBox.Size = new System.Drawing.Size(400, 280);
+        this.tasksListBox.Size = new System.Drawing.Size(400, 230);
         this.tasksListBox.TabIndex = 1;
+        this.tasksListBox.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right);
+        this.tasksListBox.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.tasksListBox_DrawItem); 
         
+        // btnStart
+        this.btnStart.Location = new System.Drawing.Point(12, 280);
+        this.btnStart.Name = "btnStart";
+        this.btnStart.Size = new System.Drawing.Size(196, 30);
+        this.btnStart.TabIndex = 5;
+        this.btnStart.Text = "Взяти в роботу";
+        this.btnStart.UseVisualStyleBackColor = true;
+        this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
+        this.btnStart.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left);
+
+        // btnComplete
+        this.btnComplete.Location = new System.Drawing.Point(216, 280);
+        this.btnComplete.Name = "btnComplete";
+        this.btnComplete.Size = new System.Drawing.Size(196, 30);
+        this.btnComplete.TabIndex = 6;
+        this.btnComplete.Text = "Завершити";
+        this.btnComplete.UseVisualStyleBackColor = true;
+        this.btnComplete.Click += new System.EventHandler(this.btnComplete_Click);
+        this.btnComplete.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left);
+
         // btnAddTask
-        this.btnAddTask.Location = new System.Drawing.Point(12, 324);
+        this.btnAddTask.Location = new System.Drawing.Point(12, 320);
         this.btnAddTask.Name = "btnAddTask";
         this.btnAddTask.Size = new System.Drawing.Size(196, 30);
         this.btnAddTask.TabIndex = 2;
         this.btnAddTask.Text = "Додати завдання";
         this.btnAddTask.UseVisualStyleBackColor = true;
         this.btnAddTask.Click += new System.EventHandler(this.btnAddTask_Click); 
+        this.btnAddTask.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left);
         
         // btnExport
-        this.btnExport.Location = new System.Drawing.Point(216, 324);
+        this.btnExport.Location = new System.Drawing.Point(216, 320);
         this.btnExport.Name = "btnExport";
         this.btnExport.Size = new System.Drawing.Size(196, 30);
         this.btnExport.TabIndex = 3;
         this.btnExport.Text = "Експорт у файл";
         this.btnExport.UseVisualStyleBackColor = true;
         this.btnExport.Click += new System.EventHandler(this.btnExport_Click);
+        this.btnExport.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left);
         
-        // btnCalcStats (ЛР 8: Нова кнопка знизу)
+        // btnCalcStats
         this.btnCalcStats.Location = new System.Drawing.Point(12, 360);
         this.btnCalcStats.Name = "btnCalcStats";
         this.btnCalcStats.Size = new System.Drawing.Size(196, 30);
@@ -83,16 +111,20 @@ partial class MainForm
         this.btnCalcStats.Text = "Оцінити Проєкт";
         this.btnCalcStats.UseVisualStyleBackColor = true;
         this.btnCalcStats.Click += new System.EventHandler(this.btnCalcStats_Click);
+        this.btnCalcStats.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left);
 
-        // lblStats (ЛР 8: Лейбл для результату)
+        // lblStats
         this.lblStats.Location = new System.Drawing.Point(220, 360);
         this.lblStats.Name = "lblStats";
         this.lblStats.Size = new System.Drawing.Size(190, 30);
         this.lblStats.Text = "Загальна оцінка: 0";
         this.lblStats.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+        this.lblStats.Anchor = (System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left);
         
         // MainForm
-        this.ClientSize = new System.Drawing.Size(424, 400);
+        this.ClientSize = new System.Drawing.Size(424, 410);
+        this.Controls.Add(this.btnStart);
+        this.Controls.Add(this.btnComplete);
         this.Controls.Add(this.lblStats);
         this.Controls.Add(this.btnCalcStats);
         this.Controls.Add(this.btnExport);

@@ -6,15 +6,17 @@ namespace ToDo.Data;
 
 public class ToDoDbContext : DbContext
 {
+    // *** ДОБАВЛЕН КОНСТРУКТОР ***
+    public ToDoDbContext(DbContextOptions<ToDoDbContext> options) : base(options)
+    {
+    }
+
     public DbSet<User> Users { get; set; }
     public DbSet<Project> Projects { get; set; }
     public DbSet<Task> Tasks { get; set; }
     public DbSet<Tag> Tags { get; set; }
     
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlite("Data Source=todo.db");
-    }
+    // *** МЕТОД OnConfiguring УДАЛЕН (чтобы не мешал настройкам в Program.cs) ***
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
